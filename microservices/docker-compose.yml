@@ -2,30 +2,58 @@ version: "3"
 services:
   post_db:
     image: mongo:3.2
+    container_name: mongodb
     volumes:
       - post_db:/data/db
     networks:
       - reddit
   ui:
-    build: ./ui
-    image: ${USERNAME}/ui:1.0
+    image: ${DOCKER_NAME}/ui
+    container_name: ui
     ports:
       - 9292:9292/tcp
     networks:
       - reddit
   post:
-    build: ./post-py
-    image: ${USERNAME}/post:1.0
+    image: ${DOCKER_NAME}/post-py
+    container_name: post
     networks:
       - reddit
   comment:
-    build: ./comment
-    image: ${USERNAME}/comment:1.0
+    image: ${DOCKER_NAME}/comment
+    container_name: comment
+    networks:
+      - reddit
+  prometheus:
+    image: ${DOCKER_NAME}/prometheus
+    container_name: prometheus
+    ports:
+      - 9090:9090/tcp
+    volumes:
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention=1d'
+    networks:
+      - reddit
+  node-exporter:
+    image: prom/node-exporter:v0.15.2
+    user: root
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
     networks:
       - reddit
 
 volumes:
   post_db:
+  prometheus_data:
 
 networks:
   reddit:
