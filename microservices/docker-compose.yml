@@ -1,10 +1,19 @@
 version: "3"
 services:
   post_db:
-    image: mongo:3.2
+    image: mongo:3.6
     container_name: mongodb
     volumes:
       - post_db:/data/db
+      - ${DOCKER_MACHINE_USER_DIRECTORY}/mongod.conf:/etc/mongod.conf
+    networks:
+      - reddit
+    command: ["--config", "/etc/mongod.conf"]
+  db_exporter:
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+    image: bitnami/mongodb-exporter
+    container_name: db_exporter
     networks:
       - reddit
   ui:
@@ -50,7 +59,13 @@ services:
       - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
     networks:
       - reddit
-
+  blackbox:
+    image: prom/blackbox-exporter
+    networks:
+      - reddit
+    volumes:
+    - ${DOCKER_MACHINE_USER_DIRECTORY}/blackbox.yml:/etc/blackbox.yml
+    command: ["--config.file=/etc/blackbox.yml"]
 volumes:
   post_db:
   prometheus_data:
